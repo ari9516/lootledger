@@ -15,9 +15,20 @@
 [![JWT](https://img.shields.io/badge/JWT-000000?style=flat-square&logo=jsonwebtokens&logoColor=white)](https://jwt.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 
-[Live Demo](#) · [API Docs](#api-endpoints) · [Report Bug](https://github.com/ari9516/lootledger/issues) · [Request Feature](https://github.com/ari9516/lootledger/issues)
+[Live Demo](https://lootledger-gamma.vercel.app) · [API](https://lootledger.onrender.com) · [Report Bug](https://github.com/ari9516/lootledger/issues) · [Request Feature](https://github.com/ari9516/lootledger/issues)
 
 </div>
+
+---
+
+## 🚀 Live Demo
+
+| | URL |
+|---|---|
+| **Frontend** | https://lootledger-gamma.vercel.app |
+| **Backend API** | https://lootledger.onrender.com |
+
+> Note: Backend is hosted on Render's free tier and may take 30–60 seconds to wake up on first request.
 
 ---
 
@@ -29,7 +40,7 @@ Log every deposit, purchase, sale, withdrawal, and loss. The dashboard then aggr
 
 ### Why I Built This
 
-Most finance apps aren't built for gamers. They don't understand the difference between a skin purchase and a skin sale, or how to calculate net profit from trades. LootLedger is purpose-built for that use case, with a clean REST API that's designed to eventually plug into live gaming platform APIs for automated tracking.
+Most finance apps aren't built for gamers. They don't understand the difference between a skin purchase and a skin sale, or how to calculate net profit from trades. LootLedger is purpose-built for that use case, with a clean REST API designed to eventually plug into live gaming platform APIs for automated tracking.
 
 ---
 
@@ -38,9 +49,10 @@ Most finance apps aren't built for gamers. They don't understand the difference 
 ### Core
 - 🔐 **JWT Authentication** — Secure register/login with bcrypt password hashing
 - 💸 **Transaction Logging** — Add, edit, and delete transactions with type, category, date, and notes
-- 📊 **P&L Analytics** — Automatic profit/loss calculation across all your transactions
+- 📊 **P&L Analytics** — Automatic profit/loss calculation across all transactions
 - 📅 **Time Filters** — Summary views for this week, this month, this year, and all-time
 - 🔍 **Advanced Filtering** — Filter transactions by type and custom date ranges
+- 📈 **Interactive Charts** — Line chart showing money in vs money out over time
 
 ### Transaction Types Supported
 | Type | Description |
@@ -53,10 +65,10 @@ Most finance apps aren't built for gamers. They don't understand the difference 
 
 ### Planned (v2)
 - 📤 CSV export of transaction history
-- 🌙 Dark mode toggle
-- 🔗 Live API integration with Steam Marketplace
+- 🔗 Live Steam Marketplace API integration
+- 🪙 Coinbase OAuth for crypto gaming wallets
 - 📧 Weekly P&L summary via email
-- 📱 Mobile-responsive dashboard
+- 🌐 Chrome extension for auto-logging on gaming marketplaces
 
 ---
 
@@ -78,17 +90,17 @@ Most finance apps aren't built for gamers. They don't understand the difference 
 | Technology | Purpose |
 |---|---|
 | **React (Vite)** | UI framework |
-| **Tailwind CSS** | Utility-first styling |
+| **Tailwind CSS v4** | Utility-first styling |
 | **Recharts** | Interactive data charts |
-| **Axios** | HTTP client |
-| **React Router** | Client-side routing |
+| **Axios** | HTTP client with interceptors |
+| **React Router v7** | Client-side routing |
 
 ### Infrastructure
 | Service | Purpose |
 |---|---|
-| **Railway** | Backend + PostgreSQL hosting |
-| **Vercel** | Frontend hosting |
-| **GitHub** | Version control + CI |
+| **Render** | Backend API + PostgreSQL hosting |
+| **Vercel** | Frontend hosting with CI/CD |
+| **GitHub** | Version control |
 
 ---
 
@@ -183,6 +195,12 @@ npm install
 npm run dev
 ```
 
+Create a `.env` file inside `/client`:
+
+```env
+VITE_API_URL=http://localhost:5000/api
+```
+
 Frontend runs at → `http://localhost:5173`
 
 ---
@@ -191,7 +209,7 @@ Frontend runs at → `http://localhost:5173`
 
 ### Base URL
 ```
-http://localhost:5000/api
+https://lootledger.onrender.com/api
 ```
 
 ### Auth Routes
@@ -331,20 +349,23 @@ Tests cover:
 
 ## 🚀 Deployment
 
-### Backend → Railway
+### Backend → Render
 
 1. Push code to GitHub
-2. Create new Railway project → Deploy from GitHub
-3. Add PostgreSQL plugin
-4. Set environment variables: `DATABASE_URL`, `JWT_SECRET`, `PORT`
-5. Run `npx prisma migrate deploy` in Railway shell
+2. Go to render.com → New Web Service → connect repo
+3. Set root directory to `server`
+4. Set build command: `npm install && npx prisma generate`
+5. Set start command: `npx prisma migrate deploy && node index.js`
+6. Create a PostgreSQL database on Render
+7. Add environment variables: `DATABASE_URL`, `JWT_SECRET`, `NODE_ENV=production`
 
 ### Frontend → Vercel
 
-1. Import GitHub repo in Vercel
+1. Go to vercel.com → Import GitHub repo
 2. Set root directory to `client`
-3. Add environment variable: `VITE_API_URL=https://your-railway-url.railway.app`
-4. Deploy
+3. Add environment variable: `VITE_API_URL=https://lootledger.onrender.com/api`
+4. Add `vercel.json` in `/client` for React Router support
+5. Deploy
 
 ---
 

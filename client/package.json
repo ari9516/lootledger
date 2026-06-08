@@ -4,10 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-  "start": "node index.js",
-  "dev": "nodemon index.js",
-  "test": "jest",
-  "build": "npx prisma generate"
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
   },
   "dependencies": {
     "axios": "^1.17.0",

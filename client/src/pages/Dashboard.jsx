@@ -49,9 +49,13 @@ export default function Dashboard() {
           day: 'numeric', month: 'short'
         })
         if (!grouped[date]) grouped[date] = { date, in: 0, out: 0 }
-        if (t.type === 'deposit' || t.type === 'sale') {
+        
+        // INCOME: deposit and profit
+        if (t.type === 'deposit' || t.type === 'profit') {
           grouped[date].in += t.amount
-        } else {
+        } 
+        // EXPENSE: withdrawal and loss
+        else if (t.type === 'withdrawal' || t.type === 'loss') {
           grouped[date].out += t.amount
         }
       })

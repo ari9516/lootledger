@@ -2,7 +2,7 @@ const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
-const VALID_TYPES = ['deposit', 'sale', 'purchase', 'withdrawal', 'loss'];
+const VALID_TYPES = ['deposit', 'withdrawal', 'profit', 'loss'];
 
 // GET all transactions (with optional filters)
 const getTransactions = async (req, res) => {
@@ -56,9 +56,12 @@ const getSummary = async (req, res) => {
 
     const summary = transactions.reduce(
       (acc, t) => {
-        if (t.type === 'deposit' || t.type === 'sale') {
+        // INCOME types: deposit and profit
+        if (t.type === 'deposit' || t.type === 'profit') {
           acc.totalIn += t.amount;
-        } else {
+        } 
+        // EXPENSE types: withdrawal and loss
+        else if (t.type === 'withdrawal' || t.type === 'loss') {
           acc.totalOut += t.amount;
         }
         return acc;

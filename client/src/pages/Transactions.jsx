@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import API from '../api/axios'
 import TransactionCard from '../components/TransactionCard'
 
-const TYPES = ['deposit', 'sale', 'purchase', 'withdrawal', 'loss']
+const TYPES = ['deposit', 'withdrawal', 'profit', 'loss']
 
 const emptyForm = {
   amount: '',
@@ -91,6 +91,20 @@ export default function Transactions() {
   const filtered = filter === 'all'
     ? transactions
     : transactions.filter((t) => t.type === filter)
+
+  // Helper function to get color based on transaction type
+  const getTypeColor = (type) => {
+    switch(type) {
+      case 'deposit':
+      case 'profit':
+        return 'text-green-400'
+      case 'withdrawal':
+      case 'loss':
+        return 'text-red-400'
+      default:
+        return 'text-gray-400'
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 px-6 py-8">

@@ -18,7 +18,7 @@ model User {
 model Transaction {
   id        String   @id @default(uuid())
   amount    Float
-  type      String
+  type      String   // deposit, withdrawal, profit, loss
   category  String
   date      DateTime
   notes     String?

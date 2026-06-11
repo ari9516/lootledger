@@ -1,16 +1,18 @@
 const typeStyles = {
   deposit:    { bg: 'bg-green-900/30',  text: 'text-green-400',  label: 'Deposit' },
-  sale:       { bg: 'bg-blue-900/30',   text: 'text-blue-400',   label: 'Sale' },
-  purchase:   { bg: 'bg-yellow-900/30', text: 'text-yellow-400', label: 'Purchase' },
   withdrawal: { bg: 'bg-orange-900/30', text: 'text-orange-400', label: 'Withdrawal' },
+  profit:     { bg: 'bg-blue-900/30',   text: 'text-blue-400',   label: 'Profit' },
   loss:       { bg: 'bg-red-900/30',    text: 'text-red-400',    label: 'Loss' },
 }
 
 const typeSign = {
-  deposit: '+', sale: '+', purchase: '-', withdrawal: '-', loss: '-'
+  deposit: '+', 
+  profit: '+', 
+  withdrawal: '-', 
+  loss: '-'
 }
 
-export default function TransactionCard({ transaction, onDelete, onEdit }) {
+export default function TransactionCard({ transaction, onEdit, onDelete }) {
   const style = typeStyles[transaction.type] || typeStyles.deposit
   const sign = typeSign[transaction.type]
   const isPositive = sign === '+'

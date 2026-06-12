@@ -13,6 +13,7 @@ model User {
   password     String
   createdAt    DateTime      @default(now())
   transactions Transaction[]
+  journalEntries JournalEntry[]
 }
 
 model Transaction {
@@ -26,4 +27,18 @@ model Transaction {
   user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model JournalEntry {
+  id           String   @id @default(uuid())
+  date         DateTime @unique
+  stakedAmount Float    // Amount you risked/put in
+  profitAmount Float    // Amount you profited (0 if loss)
+  lossAmount   Float    // Amount you lost (0 if profit)
+  netResult    Float    // profitAmount - lossAmount (auto-calculated)
+  notes        String?
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }

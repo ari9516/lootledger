@@ -12,9 +12,11 @@ app.use(express.json());
 // Routes
 const authRoutes = require('./routes/auth');
 const transactionRoutes = require('./routes/transactions');
+const journalRoutes = require('./routes/journal');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/transactions', transactionRoutes);
+app.use('/api/journal', journalRoutes);
 
 // Health check
 app.get('/', (req, res) => {

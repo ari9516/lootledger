@@ -30,6 +30,9 @@ export default function Navbar() {
             <Link to="/transactions" className={`text-sm pb-1 transition-all ${isActive('/transactions')}`}>
               Transactions
             </Link>
+            <Link to="/journal" className={`text-sm pb-1 transition-all ${isActive('/journal')}`}>
+              Journal
+            </Link>
           </div>
         </div>
         <div className="flex items-center gap-4">

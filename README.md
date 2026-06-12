@@ -36,11 +36,11 @@
 
 **LootLedger** is a full-stack personal finance tracker built specifically for gaming platform economies. Whether you're flipping CS2 skins, trading in-game items, or tracking Valorant point purchases — LootLedger gives you a clear, data-driven picture of exactly where your money goes and what comes back.
 
-Log every deposit, purchase, sale, withdrawal, and loss. The dashboard then aggregates your transactions into weekly, monthly, and yearly profit/loss reports with interactive charts — so you always know if you're actually winning.
+Log every deposit, withdrawal, profit, and loss. The dashboard then aggregates your transactions into weekly, monthly, and yearly profit/loss reports with interactive charts — so you always know if you're actually winning.
 
 ### Why I Built This
 
-Most finance apps aren't built for gamers. They don't understand the difference between a skin purchase and a skin sale, or how to calculate net profit from trades. LootLedger is purpose-built for that use case, with a clean REST API designed to eventually plug into live gaming platform APIs for automated tracking.
+Most finance apps aren't built for gamers. They don't understand the difference between money added, money withdrawn, profits from trades, or losses from bets. LootLedger is purpose-built for that use case, with a clean REST API designed to eventually plug into live gaming platform APIs for automated tracking.
 
 ---
 
@@ -58,10 +58,9 @@ Most finance apps aren't built for gamers. They don't understand the difference 
 | Type | Description |
 |---|---|
 | `deposit` | Money added to a platform |
-| `purchase` | In-game item or content bought |
-| `sale` | Item sold on marketplace |
-| `withdrawal` | Money taken out |
-| `loss` | Money lost on trade or bet |
+| `withdrawal` | Money taken out from a platform |
+| `profit` | Money earned from trades, bets, or sales |
+| `loss` | Money lost on trades, bets, or purchases |
 
 ### Planned (v2)
 - 📤 CSV export of transaction history
@@ -224,7 +223,7 @@ https://lootledger.onrender.com/api
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
 | `GET` | `/transactions` | ✅ | Get all transactions |
-| `GET` | `/transactions?type=sale` | ✅ | Filter by type |
+| `GET` | `/transactions?type=profit` | ✅ | Filter by type |
 | `GET` | `/transactions?startDate=&endDate=` | ✅ | Filter by date range |
 | `GET` | `/transactions/summary` | ✅ | All-time P&L summary |
 | `GET` | `/transactions/summary?period=week` | ✅ | Weekly summary |
@@ -258,20 +257,20 @@ Authorization: Bearer <token>
 
 {
   "amount": 1250.00,
-  "type": "sale",
-  "category": "CS2 Skins",
+  "type": "profit",
+  "category": "Tournament Win",
   "date": "2026-06-07",
-  "notes": "Sold AWP Dragon Lore"
+  "notes": "Won CS2 tournament"
 }
 
 Response 201:
 {
   "id": "uuid",
   "amount": 1250,
-  "type": "sale",
-  "category": "CS2 Skins",
+  "type": "profit",
+  "category": "Tournament Win",
   "date": "2026-06-07T00:00:00.000Z",
-  "notes": "Sold AWP Dragon Lore",
+  "notes": "Won CS2 tournament",
   "userId": "uuid",
   "createdAt": "2026-06-07T10:30:00.000Z",
   "updatedAt": "2026-06-07T10:30:00.000Z"
@@ -320,7 +319,7 @@ model User {
 model Transaction {
   id        String   @id @default(uuid())
   amount    Float
-  type      String   // deposit | sale | purchase | withdrawal | loss
+  type      String   // deposit | withdrawal | profit | loss
   category  String
   date      DateTime
   notes     String?
@@ -397,8 +396,5 @@ Computer Science @ VIT Bhopal University
 
 Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
 
----
 
-<div align="center">
-  <sub>Built with ☕ and too many late nights — GSSoC 2026</sub>
-</div>
+

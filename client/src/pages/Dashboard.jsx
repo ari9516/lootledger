@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import API from '../api/axios'
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Legend
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, Legend, ReferenceLine
 } from 'recharts'
 
 const PERIODS = [
@@ -151,9 +151,14 @@ export default function Dashboard() {
     const grouped = {}
     pnlOnly(data).forEach((t) => {
       const label = fmt(t.date, SHORT)
-      if (!grouped[label]) grouped[label] = { date: label, profit: 0, loss: 0 }
-      if (t.type === 'profit') grouped[label].profit += t.amount
-      else grouped[label].loss += t.amount
+      if (!grouped[label]) grouped[label] = { date: label, profit: 0, loss: 0, net: 0 }
+      if (t.type === 'profit') {
+        grouped[label].profit += t.amount
+        grouped[label].net += t.amount
+      } else {
+        grouped[label].loss += t.amount
+        grouped[label].net -= t.amount
+      }
     })
     setChartData(Object.values(grouped).slice(-15))
   }
@@ -420,37 +425,43 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ── Dual Y-Axis Chart ───────────────────────────────────────── */}
+        {/* ── DUAL Y-AXIS BAR CHART (STICK GRAPH) ────────────────────── */}
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
           <SectionHeading
-            title="Profit vs Loss Over Time (Dual Axis)"
-            subtitle="Green = Profit Day (left axis) · Red = Loss Day (right axis)"
+            title="Profit & Loss Daily Performance (Stick Graph)"
+            subtitle="Green = Profit Day · Red = Loss Day · Positive = Above Zero · Negative = Below Zero"
           />
           {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData} margin={{ top: 4, right: 16, bottom: 0, left: 0 }}>
+            <ResponsiveContainer width="100%" height={320}>
+              <BarChart 
+                data={chartData} 
+                margin={{ top: 8, right: 16, bottom: 8, left: 0 }}
+                barGap={0}
+                barCategoryGap={4}
+              >
                 <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                 
-                {/* Left Y-Axis - PROFIT */}
+                {/* Left Y-Axis - NET RESULT (Positive & Negative) */}
                 <YAxis
                   yAxisId="left"
                   orientation="left"
-                  tick={{ fill: '#4ade80', fontSize: 11 }}
-                  axisLine={{ stroke: '#4ade80', strokeWidth: 1 }}
+                  tick={{ fill: '#9ca3af', fontSize: 11 }}
+                  axisLine={{ stroke: '#374151', strokeWidth: 1 }}
                   tickLine={false}
                   tickFormatter={(v) => `₹${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
-                  domain={[0, 'auto']}
+                  domain={['auto', 'auto']}
                 />
                 
-                {/* Right Y-Axis - LOSS */}
+                {/* Right Y-Axis (mirror of left for symmetry) */}
                 <YAxis
                   yAxisId="right"
                   orientation="right"
-                  tick={{ fill: '#f87171', fontSize: 11 }}
-                  axisLine={{ stroke: '#f87171', strokeWidth: 1 }}
+                  tick={{ fill: '#9ca3af', fontSize: 11 }}
+                  axisLine={{ stroke: '#374151', strokeWidth: 1 }}
                   tickLine={false}
                   tickFormatter={(v) => `₹${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
-                  domain={[0, 'auto']}
+                  domain={['auto', 'auto']}
+                  mirror={true}
                 />
 
                 <XAxis
@@ -458,7 +469,11 @@ export default function Dashboard() {
                   tick={{ fill: '#6b7280', fontSize: 11 }}
                   axisLine={{ stroke: '#1f2937' }}
                   tickLine={false}
+                  interval={0}
                 />
+                
+                {/* Reference line at Zero */}
+                <ReferenceLine yAxisId="left" y={0} stroke="#4b5563" strokeWidth={1.5} strokeDasharray="3 3" />
                 
                 <Tooltip
                   contentStyle={{
@@ -469,40 +484,39 @@ export default function Dashboard() {
                     fontSize: '12px',
                   }}
                   formatter={(value, name) => {
-                    if (name === 'Profit') return [`₹${value.toLocaleString('en-IN')}`, 'Profit (Day)']
-                    if (name === 'Loss') return [`₹${value.toLocaleString('en-IN')}`, 'Loss (Day)']
-                    return [value, name]
+                    if (name === 'Net Result') {
+                      const sign = value >= 0 ? '+' : ''
+                      return [`${sign}₹${value.toLocaleString('en-IN')}`, 'Net Result']
+                    }
+                    return [`₹${value.toLocaleString('en-IN')}`, name]
                   }}
+                  labelFormatter={(label) => `Date: ${label}`}
                 />
                 
                 <Legend
                   wrapperStyle={{ fontSize: '12px', color: '#9ca3af', paddingTop: '12px' }}
                 />
 
-                {/* Profit Line (Green) - Left Y Axis */}
-                <Line
+                {/* Profit Bar (Positive values only) */}
+                <Bar
                   yAxisId="left"
-                  type="monotone"
                   dataKey="profit"
-                  stroke="#4ade80"
-                  strokeWidth={2.5}
-                  dot={{ fill: '#4ade80', r: 4 }}
-                  activeDot={{ r: 6 }}
+                  fill="#4ade80"
+                  radius={[2, 2, 0, 0]}
                   name="Profit"
+                  stackId="stack"
                 />
 
-                {/* Loss Line (Red) - Right Y Axis */}
-                <Line
-                  yAxisId="right"
-                  type="monotone"
+                {/* Loss Bar (Negative values only) */}
+                <Bar
+                  yAxisId="left"
                   dataKey="loss"
-                  stroke="#f87171"
-                  strokeWidth={2.5}
-                  dot={{ fill: '#f87171', r: 4 }}
-                  activeDot={{ r: 6 }}
+                  fill="#f87171"
+                  radius={[2, 2, 0, 0]}
                   name="Loss"
+                  stackId="stack"
                 />
-              </LineChart>
+              </BarChart>
             </ResponsiveContainer>
           ) : (
             <div className="h-56 flex flex-col items-center justify-center gap-2">

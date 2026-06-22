@@ -81,20 +81,20 @@ export default function Journal() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-xl p-6 shadow-lg">
+          <div className="bg-gradient-to-br from-red-600 to-red-700 rounded-xl p-6 shadow-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-sm">Total Deposits</p>
+                <p className="text-red-100 text-sm">Total Deposits</p>
                 <p className="text-3xl font-bold text-white">₹{summary.deposit.toLocaleString('en-IN')}</p>
               </div>
               <span className="text-3xl">📥</span>
             </div>
           </div>
           
-          <div className="bg-gradient-to-br from-orange-600 to-orange-700 rounded-xl p-6 shadow-lg">
+          <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-xl p-6 shadow-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-orange-100 text-sm">Total Withdrawals</p>
+                <p className="text-green-100 text-sm">Total Withdrawals</p>
                 <p className="text-3xl font-bold text-white">₹{summary.withdrawal.toLocaleString('en-IN')}</p>
               </div>
               <span className="text-3xl">📤</span>
@@ -121,8 +121,8 @@ export default function Journal() {
                   formatter={(value) => `₹${value.toLocaleString('en-IN')}`}
                 />
                 <Legend />
-                <Bar dataKey="deposit" fill="#4ade80" name="Deposits" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="withdrawal" fill="#fb923c" name="Withdrawals" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="deposit" fill="#ef4444" name="Deposits" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="withdrawal" fill="#22c55e" name="Withdrawals" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -166,15 +166,15 @@ export default function Journal() {
                       <td className="px-6 py-4">
                         <span className={`text-xs px-2 py-1 rounded-full capitalize ${
                           t.type === 'deposit' 
-                            ? 'text-green-400 bg-green-900/30' 
-                            : 'text-orange-400 bg-orange-900/30'
+                            ? 'text-red-400 bg-red-900/30' 
+                            : 'text-green-400 bg-green-900/30'
                         }`}>
                           {t.type}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-white">{t.category}</td>
                       <td className={`px-6 py-4 text-right text-sm font-semibold ${
-                        t.type === 'deposit' ? 'text-green-400' : 'text-orange-400'
+                        t.type === 'deposit' ? 'text-red-400' : 'text-green-400'
                       }`}>
                         {t.type === 'deposit' ? '+' : '-'}₹{t.amount.toLocaleString('en-IN')}
                       </td>
@@ -190,14 +190,14 @@ export default function Journal() {
                       Totals:
                     </td>
                     <td className="px-6 py-4 text-right text-sm font-bold">
-                      <span className="text-green-400">
+                      <span className="text-red-400">
                         +₹{filteredTransactions
                           .filter(t => t.type === 'deposit')
                           .reduce((sum, t) => sum + t.amount, 0)
                           .toLocaleString('en-IN')}
                       </span>
                       <span className="text-gray-600 mx-2">|</span>
-                      <span className="text-orange-400">
+                      <span className="text-green-400">
                         -₹{filteredTransactions
                           .filter(t => t.type === 'withdrawal')
                           .reduce((sum, t) => sum + t.amount, 0)

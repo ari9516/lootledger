@@ -490,7 +490,11 @@ export default function Dashboard() {
                 />
                 
                 <Legend
-                  wrapperStyle={{ fontSize: '12px', color: '#9ca3af', paddingTop: '12px' }}
+                  wrapperStyle={{ 
+                    fontSize: '12px', 
+                    color: '#ffffff', 
+                    paddingTop: '12px' 
+                  }}
                 />
 
                 {/* Single Bar showing NET result with conditional color using Cell */}

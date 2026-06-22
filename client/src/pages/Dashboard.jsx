@@ -438,14 +438,14 @@ export default function Dashboard() {
                 barGap={0}
                 barCategoryGap={4}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#eaf0f8" />
                 
                 {/* Left Y-Axis */}
                 <YAxis
                   yAxisId="left"
                   orientation="left"
                   tick={{ fill: '#9ca3af', fontSize: 11 }}
-                  axisLine={{ stroke: '#374151', strokeWidth: 1 }}
+                  axisLine={{ stroke: '#b1b7c1', strokeWidth: 1 }}
                   tickLine={false}
                   tickFormatter={(v) => `₹${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
                   domain={['auto', 'auto']}
@@ -456,7 +456,7 @@ export default function Dashboard() {
                   yAxisId="right"
                   orientation="right"
                   tick={{ fill: '#9ca3af', fontSize: 11 }}
-                  axisLine={{ stroke: '#374151', strokeWidth: 1 }}
+                  axisLine={{ stroke: '#c7cdd8', strokeWidth: 1 }}
                   tickLine={false}
                   tickFormatter={(v) => `₹${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
                   domain={['auto', 'auto']}

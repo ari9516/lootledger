@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import API from '../api/axios'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Legend, ReferenceLine
+  Tooltip, ResponsiveContainer, Legend, ReferenceLine,
+  Cell
 } from 'recharts'
 
 const PERIODS = [
@@ -492,14 +493,20 @@ export default function Dashboard() {
                   wrapperStyle={{ fontSize: '12px', color: '#9ca3af', paddingTop: '12px' }}
                 />
 
-                {/* Single Bar showing NET result with conditional color */}
+                {/* Single Bar showing NET result with conditional color using Cell */}
                 <Bar
                   yAxisId="left"
                   dataKey="net"
-                  fill={(entry) => entry.net >= 0 ? '#4ade80' : '#f87171'}
                   radius={[2, 2, 0, 0]}
                   name="Net Result"
-                />
+                >
+                  {chartData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={entry.net >= 0 ? '#4ade80' : '#f87171'} 
+                    />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           ) : (

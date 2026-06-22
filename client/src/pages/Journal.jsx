@@ -85,7 +85,7 @@ export default function Journal() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-red-100 text-sm">Total Deposits</p>
-                <p className="text-3xl font-bold text-white">₹{summary.deposit.toLocaleString('en-IN')}</p>
+                <p className="text-3xl font-bold text-white">-₹{summary.deposit.toLocaleString('en-IN')}</p>
               </div>
               <span className="text-3xl">📥</span>
             </div>
@@ -95,7 +95,7 @@ export default function Journal() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-green-100 text-sm">Total Withdrawals</p>
-                <p className="text-3xl font-bold text-white">₹{summary.withdrawal.toLocaleString('en-IN')}</p>
+                <p className="text-3xl font-bold text-white">+₹{summary.withdrawal.toLocaleString('en-IN')}</p>
               </div>
               <span className="text-3xl">📤</span>
             </div>
@@ -121,8 +121,8 @@ export default function Journal() {
                   formatter={(value) => `₹${value.toLocaleString('en-IN')}`}
                 />
                 <Legend />
-                <Bar dataKey="deposit" fill="#ef4444" name="Deposits" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="withdrawal" fill="#22c55e" name="Withdrawals" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="deposit" fill="#ef4444" name="Deposits (-)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="withdrawal" fill="#22c55e" name="Withdrawals (+)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -176,7 +176,7 @@ export default function Journal() {
                       <td className={`px-6 py-4 text-right text-sm font-semibold ${
                         t.type === 'deposit' ? 'text-red-400' : 'text-green-400'
                       }`}>
-                        {t.type === 'deposit' ? '+' : '-'}₹{t.amount.toLocaleString('en-IN')}
+                        {t.type === 'deposit' ? '-' : '+'}₹{t.amount.toLocaleString('en-IN')}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-400 max-w-xs truncate">
                         {t.notes || '-'}
@@ -191,14 +191,14 @@ export default function Journal() {
                     </td>
                     <td className="px-6 py-4 text-right text-sm font-bold">
                       <span className="text-red-400">
-                        +₹{filteredTransactions
+                        -₹{filteredTransactions
                           .filter(t => t.type === 'deposit')
                           .reduce((sum, t) => sum + t.amount, 0)
                           .toLocaleString('en-IN')}
                       </span>
                       <span className="text-gray-600 mx-2">|</span>
                       <span className="text-green-400">
-                        -₹{filteredTransactions
+                        +₹{filteredTransactions
                           .filter(t => t.type === 'withdrawal')
                           .reduce((sum, t) => sum + t.amount, 0)
                           .toLocaleString('en-IN')}

@@ -155,7 +155,7 @@ export default function Dashboard() {
       if (t.type === 'profit') grouped[label].profit += t.amount
       else grouped[label].loss += t.amount
     })
-    setChartData(Object.values(grouped).slice(-12))
+    setChartData(Object.values(grouped).slice(-15))
   }
 
   // ── Period Options ────────────────────────────────────────────────────────
@@ -420,28 +420,46 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ── Chart ───────────────────────────────────────────────────── */}
+        {/* ── Dual Y-Axis Chart ───────────────────────────────────────── */}
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
           <SectionHeading
-            title="Profit vs Loss Over Time"
-            subtitle="Last 12 recorded dates with P&L activity"
+            title="Profit vs Loss Over Time (Dual Axis)"
+            subtitle="Green = Profit Day (left axis) · Red = Loss Day (right axis)"
           />
           {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData} margin={{ top: 4, right: 16, bottom: 0, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                
+                {/* Left Y-Axis - PROFIT */}
+                <YAxis
+                  yAxisId="left"
+                  orientation="left"
+                  tick={{ fill: '#4ade80', fontSize: 11 }}
+                  axisLine={{ stroke: '#4ade80', strokeWidth: 1 }}
+                  tickLine={false}
+                  tickFormatter={(v) => `₹${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+                  domain={[0, 'auto']}
+                />
+                
+                {/* Right Y-Axis - LOSS */}
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  tick={{ fill: '#f87171', fontSize: 11 }}
+                  axisLine={{ stroke: '#f87171', strokeWidth: 1 }}
+                  tickLine={false}
+                  tickFormatter={(v) => `₹${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+                  domain={[0, 'auto']}
+                />
+
                 <XAxis
                   dataKey="date"
                   tick={{ fill: '#6b7280', fontSize: 11 }}
                   axisLine={{ stroke: '#1f2937' }}
                   tickLine={false}
                 />
-                <YAxis
-                  tick={{ fill: '#6b7280', fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v) => `₹${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
-                />
+                
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#111827',
@@ -450,27 +468,38 @@ export default function Dashboard() {
                     color: '#fff',
                     fontSize: '12px',
                   }}
-                  formatter={(value) => [`₹${value.toLocaleString('en-IN')}`, undefined]}
+                  formatter={(value, name) => {
+                    if (name === 'Profit') return [`₹${value.toLocaleString('en-IN')}`, 'Profit (Day)']
+                    if (name === 'Loss') return [`₹${value.toLocaleString('en-IN')}`, 'Loss (Day)']
+                    return [value, name]
+                  }}
                 />
+                
                 <Legend
                   wrapperStyle={{ fontSize: '12px', color: '#9ca3af', paddingTop: '12px' }}
                 />
+
+                {/* Profit Line (Green) - Left Y Axis */}
                 <Line
+                  yAxisId="left"
                   type="monotone"
                   dataKey="profit"
                   stroke="#4ade80"
-                  strokeWidth={2}
-                  dot={{ fill: '#4ade80', r: 3 }}
-                  activeDot={{ r: 5 }}
+                  strokeWidth={2.5}
+                  dot={{ fill: '#4ade80', r: 4 }}
+                  activeDot={{ r: 6 }}
                   name="Profit"
                 />
+
+                {/* Loss Line (Red) - Right Y Axis */}
                 <Line
+                  yAxisId="right"
                   type="monotone"
                   dataKey="loss"
                   stroke="#f87171"
-                  strokeWidth={2}
-                  dot={{ fill: '#f87171', r: 3 }}
-                  activeDot={{ r: 5 }}
+                  strokeWidth={2.5}
+                  dot={{ fill: '#f87171', r: 4 }}
+                  activeDot={{ r: 6 }}
                   name="Loss"
                 />
               </LineChart>

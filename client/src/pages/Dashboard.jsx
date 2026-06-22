@@ -230,18 +230,13 @@ export default function Dashboard() {
     setSelectedBucket(bucket || null)
   }
 
-  // ── Period summary data ───────────────────────────────────────────────────
-  const getPeriodData = () => {
+  // ── Get ALL TIME data ───────────────────────────────────────────────────
+  const getAllTimeData = () => {
     if (!summary) return { profit: 0, loss: 0, net: 0 }
-    switch (period) {
-      case 'week':  return summary.weekly
-      case 'month': return summary.monthly
-      case 'year':  return summary.yearly
-      default:      return summary.all
-    }
+    return summary.all
   }
 
-  const periodData = getPeriodData()
+  const allTimeData = getAllTimeData()
 
   // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
@@ -292,33 +287,33 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ── KPI Cards ───────────────────────────────────────────────── */}
+        {/* ── KPI Cards - NET OVERVIEW (ALL TIME) ────────────────────── */}
         <div>
           <SectionHeading
-            title={`${PERIODS.find((p) => p.key === period)?.label} Overview`}
-            subtitle={`Aggregated profit & loss for the last ${period}`}
+            title="Net Overview"
+            subtitle="All-time profit & loss summary"
           />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <StatCard
               label="Total Profit"
-              value={periodData.profit}
+              value={allTimeData.profit}
               color="text-green-400"
               icon="📈"
               sub="Sum of all profit entries"
             />
             <StatCard
               label="Total Loss"
-              value={periodData.loss}
+              value={allTimeData.loss}
               color="text-red-400"
               icon="📉"
               sub="Sum of all loss entries"
             />
             <StatCard
               label="Net Result"
-              value={periodData.net}
-              color={periodData.net >= 0 ? 'text-indigo-400' : 'text-red-500'}
-              icon={periodData.net >= 0 ? '🎯' : '💔'}
-              sub={periodData.net >= 0 ? 'You are in profit' : 'You are in loss'}
+              value={allTimeData.net}
+              color={allTimeData.net >= 0 ? 'text-indigo-400' : 'text-red-500'}
+              icon={allTimeData.net >= 0 ? '🎯' : '💔'}
+              sub={allTimeData.net >= 0 ? 'You are in profit' : 'You are in loss'}
             />
           </div>
         </div>

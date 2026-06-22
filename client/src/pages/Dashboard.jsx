@@ -151,12 +151,10 @@ export default function Dashboard() {
     const grouped = {}
     pnlOnly(data).forEach((t) => {
       const label = fmt(t.date, SHORT)
-      if (!grouped[label]) grouped[label] = { date: label, profit: 0, loss: 0, net: 0 }
+      if (!grouped[label]) grouped[label] = { date: label, net: 0 }
       if (t.type === 'profit') {
-        grouped[label].profit += t.amount
         grouped[label].net += t.amount
       } else {
-        grouped[label].loss += t.amount
         grouped[label].net -= t.amount
       }
     })
@@ -428,8 +426,8 @@ export default function Dashboard() {
         {/* ── DUAL Y-AXIS BAR CHART (STICK GRAPH) ────────────────────── */}
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
           <SectionHeading
-            title="Profit & Loss Daily Performance (Stick Graph)"
-            subtitle="Green = Profit Day · Red = Loss Day · Positive = Above Zero · Negative = Below Zero"
+            title="Daily Net Profit & Loss (Stick Graph)"
+            subtitle="Green = Profit Day · Red = Loss Day · Height shows net amount"
           />
           {chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={320}>
@@ -441,7 +439,7 @@ export default function Dashboard() {
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                 
-                {/* Left Y-Axis - NET RESULT (Positive & Negative) */}
+                {/* Left Y-Axis */}
                 <YAxis
                   yAxisId="left"
                   orientation="left"
@@ -452,7 +450,7 @@ export default function Dashboard() {
                   domain={['auto', 'auto']}
                 />
                 
-                {/* Right Y-Axis (mirror of left for symmetry) */}
+                {/* Right Y-Axis (mirror) */}
                 <YAxis
                   yAxisId="right"
                   orientation="right"
@@ -483,12 +481,9 @@ export default function Dashboard() {
                     color: '#fff',
                     fontSize: '12px',
                   }}
-                  formatter={(value, name) => {
-                    if (name === 'Net Result') {
-                      const sign = value >= 0 ? '+' : ''
-                      return [`${sign}₹${value.toLocaleString('en-IN')}`, 'Net Result']
-                    }
-                    return [`₹${value.toLocaleString('en-IN')}`, name]
+                  formatter={(value) => {
+                    const sign = value >= 0 ? '+' : ''
+                    return [`${sign}₹${value.toLocaleString('en-IN')}`, 'Net Result']
                   }}
                   labelFormatter={(label) => `Date: ${label}`}
                 />
@@ -497,24 +492,13 @@ export default function Dashboard() {
                   wrapperStyle={{ fontSize: '12px', color: '#9ca3af', paddingTop: '12px' }}
                 />
 
-                {/* Profit Bar (Positive values only) */}
+                {/* Single Bar showing NET result with conditional color */}
                 <Bar
                   yAxisId="left"
-                  dataKey="profit"
-                  fill="#4ade80"
+                  dataKey="net"
+                  fill={(entry) => entry.net >= 0 ? '#4ade80' : '#f87171'}
                   radius={[2, 2, 0, 0]}
-                  name="Profit"
-                  stackId="stack"
-                />
-
-                {/* Loss Bar (Negative values only) */}
-                <Bar
-                  yAxisId="left"
-                  dataKey="loss"
-                  fill="#f87171"
-                  radius={[2, 2, 0, 0]}
-                  name="Loss"
-                  stackId="stack"
+                  name="Net Result"
                 />
               </BarChart>
             </ResponsiveContainer>

@@ -1,115 +1,117 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import API from '../api/axios'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer
+  Tooltip, ResponsiveContainer, Legend
 } from 'recharts'
 
-const periods = ['week', 'month', 'year']
+const PERIODS = [
+  { key: 'week', label: 'Weekly' },
+  { key: 'month', label: 'Monthly' },
+  { key: 'year', label: 'Yearly' },
+]
 
-const StatCard = ({ label, value, color, icon }) => (
-  <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+// ─── Stat Card ────────────────────────────────────────────────────────────────
+const StatCard = ({ label, value, color, icon, sub }) => (
+  <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 flex flex-col gap-3">
     <div className="flex items-center justify-between">
-      <div>
-        <p className="text-gray-400 text-sm mb-1">{label}</p>
-        <p className={`text-2xl font-bold ${color}`}>
-          ₹{Number(value || 0).toLocaleString('en-IN')}
-        </p>
-      </div>
-      <span className="text-3xl">{icon}</span>
+      <span className="text-xs font-semibold tracking-widest uppercase text-gray-500">{label}</span>
+      <span className="text-xl">{icon}</span>
     </div>
+    <p className={`text-3xl font-bold tracking-tight ${color}`}>
+      {value < 0 ? '-' : ''}₹{Math.abs(Number(value || 0)).toLocaleString('en-IN')}
+    </p>
+    {sub && <p className="text-xs text-gray-500">{sub}</p>}
   </div>
 )
 
-export default function Dashboard() {
-  const [transactions, setTransactions] = useState([])
-  const [summary, setSummary] = useState(null)
-  const [period, setPeriod] = useState('month')
-  const [chartData, setChartData] = useState([])
-  const [loading, setLoading] = useState(true)
+// ─── Section Heading ──────────────────────────────────────────────────────────
+const SectionHeading = ({ title, subtitle }) => (
+  <div className="mb-4">
+    <h2 className="text-base font-semibold text-white">{title}</h2>
+    {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
+  </div>
+)
 
+// ─── Badge ────────────────────────────────────────────────────────────────────
+const Badge = ({ type }) =>
+  type === 'profit' ? (
+    <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-green-900/30 text-green-400">
+      ↑ Profit
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-red-900/30 text-red-400">
+      ↓ Loss
+    </span>
+  )
+
+// ─── Amount Cell ──────────────────────────────────────────────────────────────
+const AmountCell = ({ type, amount }) => (
+  <span className={`font-semibold tabular-nums ${type === 'profit' ? 'text-green-400' : 'text-red-400'}`}>
+    {type === 'profit' ? '+' : '-'}₹{amount.toLocaleString('en-IN')}
+  </span>
+)
+
+// ─── Divider Row ──────────────────────────────────────────────────────────────
+const NetRow = ({ net }) => (
+  <tr className="border-t border-gray-700">
+    <td colSpan={3} className="py-3 pr-4 text-right text-xs font-semibold tracking-widest uppercase text-gray-500">
+      Net Result
+    </td>
+    <td className={`py-3 text-right font-bold tabular-nums text-sm ${net >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+      {net >= 0 ? '+' : '-'}₹{Math.abs(net).toLocaleString('en-IN')}
+    </td>
+  </tr>
+)
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const pnlOnly = (txns) => txns.filter((t) => t.type === 'profit' || t.type === 'loss')
+
+const calcNet = (txns) => {
+  const profit = txns.filter((t) => t.type === 'profit').reduce((s, t) => s + t.amount, 0)
+  const loss = txns.filter((t) => t.type === 'loss').reduce((s, t) => s + t.amount, 0)
+  return { profit, loss, net: profit - loss }
+}
+
+const fmt = (date, opts) => new Date(date).toLocaleDateString('en-IN', opts)
+
+const getWeekBounds = (date) => {
+  const d = new Date(date)
+  const start = new Date(d)
+  start.setDate(d.getDate() - d.getDay())
+  start.setHours(0, 0, 0, 0)
+  const end = new Date(start)
+  end.setDate(start.getDate() + 6)
+  end.setHours(23, 59, 59, 999)
+  return { start, end }
+}
+
+const SHORT = { day: 'numeric', month: 'short' }
+const LONG  = { day: 'numeric', month: 'short', year: 'numeric' }
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+export default function Dashboard() {
+  const [transactions, setTransactions]       = useState([])
+  const [summary, setSummary]                 = useState(null)
+  const [period, setPeriod]                   = useState('month')
+  const [periodOptions, setPeriodOptions]     = useState([])
+  const [selectedKey, setSelectedKey]         = useState(null)
+  const [selectedBucket, setSelectedBucket]  = useState(null)
+  const [chartData, setChartData]             = useState([])
+  const [loading, setLoading]                 = useState(true)
+
+  // ── Fetch ─────────────────────────────────────────────────────────────────
   useEffect(() => {
     fetchTransactions()
-  }, [period])
+  }, [])
 
   const fetchTransactions = async () => {
     try {
-      const res = await API.get('/transactions')
+      const res  = await API.get('/transactions')
       const data = res.data
       setTransactions(data)
-      
-      // Filter ONLY Profit and Loss
-      const filtered = data.filter(t => t.type === 'profit' || t.type === 'loss')
-      
-      const totalProfit = filtered
-        .filter(t => t.type === 'profit')
-        .reduce((sum, t) => sum + t.amount, 0)
-      
-      const totalLoss = filtered
-        .filter(t => t.type === 'loss')
-        .reduce((sum, t) => sum + t.amount, 0)
-      
-      const netResult = totalProfit - totalLoss
-      
-      // Calculate period-wise summaries
-      const now = new Date()
-      const weekAgo = new Date(now)
-      weekAgo.setDate(now.getDate() - 7)
-      const monthAgo = new Date(now)
-      monthAgo.setMonth(now.getMonth() - 1)
-      const yearAgo = new Date(now)
-      yearAgo.setFullYear(now.getFullYear() - 1)
-      
-      const weeklyData = data.filter(t => {
-        if (t.type !== 'profit' && t.type !== 'loss') return false
-        return new Date(t.date) >= weekAgo
-      })
-      
-      const monthlyData = data.filter(t => {
-        if (t.type !== 'profit' && t.type !== 'loss') return false
-        return new Date(t.date) >= monthAgo
-      })
-      
-      const yearlyData = data.filter(t => {
-        if (t.type !== 'profit' && t.type !== 'loss') return false
-        return new Date(t.date) >= yearAgo
-      })
-      
-      const weeklyProfit = weeklyData.filter(t => t.type === 'profit').reduce((sum, t) => sum + t.amount, 0)
-      const weeklyLoss = weeklyData.filter(t => t.type === 'loss').reduce((sum, t) => sum + t.amount, 0)
-      
-      const monthlyProfit = monthlyData.filter(t => t.type === 'profit').reduce((sum, t) => sum + t.amount, 0)
-      const monthlyLoss = monthlyData.filter(t => t.type === 'loss').reduce((sum, t) => sum + t.amount, 0)
-      
-      const yearlyProfit = yearlyData.filter(t => t.type === 'profit').reduce((sum, t) => sum + t.amount, 0)
-      const yearlyLoss = yearlyData.filter(t => t.type === 'loss').reduce((sum, t) => sum + t.amount, 0)
-      
-      setSummary({
-        totalProfit,
-        totalLoss,
-        netResult,
-        weekly: { profit: weeklyProfit, loss: weeklyLoss, net: weeklyProfit - weeklyLoss },
-        monthly: { profit: monthlyProfit, loss: monthlyLoss, net: monthlyProfit - monthlyLoss },
-        yearly: { profit: yearlyProfit, loss: yearlyLoss, net: yearlyProfit - yearlyLoss },
-        transactionCount: filtered.length
-      })
-      
-      // Prepare chart data - Profit vs Loss by date
-      const grouped = {}
-      data.forEach((t) => {
-        if (t.type !== 'profit' && t.type !== 'loss') return
-        const date = new Date(t.date).toLocaleDateString('en-IN', {
-          day: 'numeric', month: 'short'
-        })
-        if (!grouped[date]) grouped[date] = { date, profit: 0, loss: 0 }
-        if (t.type === 'profit') {
-          grouped[date].profit += t.amount
-        } else {
-          grouped[date].loss += t.amount
-        }
-      })
-      
-      setChartData(Object.values(grouped).slice(-10))
+      buildSummary(data)
+      buildChart(data)
     } catch (err) {
       console.error(err)
     } finally {
@@ -117,133 +119,354 @@ export default function Dashboard() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <p className="text-gray-400">Loading dashboard...</p>
-      </div>
-    )
+  // ── Summary ───────────────────────────────────────────────────────────────
+  const buildSummary = (data) => {
+    const filtered = pnlOnly(data)
+    const now      = new Date()
+
+    const since = (days) => {
+      const d = new Date(now)
+      d.setDate(d.getDate() - days)
+      return d
+    }
+    const sinceMonths = (m) => {
+      const d = new Date(now)
+      d.setMonth(d.getMonth() - m)
+      return d
+    }
+
+    const slice = (from) => pnlOnly(data.filter((t) => new Date(t.date) >= from))
+
+    setSummary({
+      all:     calcNet(filtered),
+      weekly:  calcNet(slice(since(7))),
+      monthly: calcNet(slice(sinceMonths(1))),
+      yearly:  calcNet(slice(sinceMonths(12))),
+      count:   filtered.length,
+    })
   }
 
-  // Get current period data
+  // ── Chart ─────────────────────────────────────────────────────────────────
+  const buildChart = (data) => {
+    const grouped = {}
+    pnlOnly(data).forEach((t) => {
+      const label = fmt(t.date, SHORT)
+      if (!grouped[label]) grouped[label] = { date: label, profit: 0, loss: 0 }
+      if (t.type === 'profit') grouped[label].profit += t.amount
+      else grouped[label].loss += t.amount
+    })
+    setChartData(Object.values(grouped).slice(-12))
+  }
+
+  // ── Period Options ────────────────────────────────────────────────────────
+  const buildOptions = useCallback(
+    (txns, mode) => {
+      const filtered = pnlOnly(txns)
+      if (!filtered.length) return []
+
+      if (mode === 'week') {
+        const map = {}
+        filtered.forEach((t) => {
+          const { start } = getWeekBounds(t.date)
+          const key = start.toISOString().split('T')[0]
+          if (!map[key]) map[key] = { start, txns: [] }
+          map[key].txns.push(t)
+        })
+
+        return Object.entries(map)
+          .sort(([a], [b]) => b.localeCompare(a))
+          .map(([key, { start, txns: wt }]) => {
+            const end = new Date(start)
+            end.setDate(start.getDate() + 6)
+            const { profit, loss, net } = calcNet(wt)
+            return {
+              key,
+              label: `${fmt(start, SHORT)} – ${fmt(end, LONG)}`,
+              profit, loss, net,
+              transactions: wt,
+            }
+          })
+      }
+
+      if (mode === 'month') {
+        const map = {}
+        filtered.forEach((t) => {
+          const d   = new Date(t.date)
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+          if (!map[key]) map[key] = { month: d.getMonth(), year: d.getFullYear(), txns: [] }
+          map[key].txns.push(t)
+        })
+
+        return Object.entries(map)
+          .sort(([a], [b]) => b.localeCompare(a))
+          .map(([key, { month, year, txns: mt }]) => {
+            const { profit, loss, net } = calcNet(mt)
+            const label = new Date(year, month).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
+            return { key, label, profit, loss, net, transactions: mt }
+          })
+      }
+
+      return []
+    },
+    []
+  )
+
+  useEffect(() => {
+    if (!transactions.length) return
+    const opts = buildOptions(transactions, period)
+    setPeriodOptions(opts)
+    if (opts.length) {
+      setSelectedKey(opts[0].key)
+      setSelectedBucket(opts[0])
+    } else {
+      setSelectedKey(null)
+      setSelectedBucket(null)
+    }
+  }, [transactions, period, buildOptions])
+
+  const handleSelect = (key) => {
+    const bucket = periodOptions.find((o) => o.key === key)
+    setSelectedKey(key)
+    setSelectedBucket(bucket || null)
+  }
+
+  // ── Period summary data ───────────────────────────────────────────────────
   const getPeriodData = () => {
     if (!summary) return { profit: 0, loss: 0, net: 0 }
-    switch(period) {
-      case 'week': return summary.weekly
+    switch (period) {
+      case 'week':  return summary.weekly
       case 'month': return summary.monthly
-      case 'year': return summary.yearly
-      default: return { profit: summary.totalProfit, loss: summary.totalLoss, net: summary.netResult }
+      case 'year':  return summary.yearly
+      default:      return summary.all
     }
   }
 
   const periodData = getPeriodData()
 
-  return (
-    <div className="min-h-screen bg-gray-950 px-6 py-8">
-      <div className="max-w-6xl mx-auto">
+  // ── Loading ───────────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-gray-500 text-sm">Loading dashboard…</p>
+        </div>
+      </div>
+    )
+  }
 
-        <div className="flex items-center justify-between mb-8">
+  // ── Render ────────────────────────────────────────────────────────────────
+  return (
+    <div className="min-h-screen bg-gray-950 px-4 py-10 md:px-8">
+      <div className="max-w-5xl mx-auto space-y-8">
+
+        {/* ── Page Header ─────────────────────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-gray-800 pb-6">
           <div>
-            <h1 className="text-2xl font-bold text-white">Profit & Loss Dashboard</h1>
-            <p className="text-gray-400 text-sm mt-1">Track your gaming profits and losses</p>
+            <p className="text-xs font-semibold tracking-widest uppercase text-indigo-400 mb-1">
+              LootLedger
+            </p>
+            <h1 className="text-3xl font-bold text-white tracking-tight">
+              Profit &amp; Loss
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">
+              Track, analyse and review your gaming economy
+            </p>
           </div>
-          <div className="flex gap-2">
-            {periods.map((p) => (
+
+          {/* Period toggle */}
+          <div className="flex items-center gap-1 bg-gray-900 border border-gray-800 rounded-xl p-1 self-start sm:self-auto">
+            {PERIODS.map(({ key, label }) => (
               <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all capitalize ${
-                  period === p
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-gray-800 text-gray-400 hover:text-white'
+                key={key}
+                onClick={() => setPeriod(key)}
+                className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  period === key
+                    ? 'bg-indigo-600 text-white shadow'
+                    : 'text-gray-400 hover:text-white'
                 }`}
               >
-                {p}
+                {label}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Summary Cards - Only Profit & Loss */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <StatCard
-            label="Total Profit"
-            value={periodData.profit}
-            color="text-green-400"
-            icon="📈"
+        {/* ── KPI Cards ───────────────────────────────────────────────── */}
+        <div>
+          <SectionHeading
+            title={`${PERIODS.find((p) => p.key === period)?.label} Overview`}
+            subtitle={`Aggregated profit & loss for the last ${period}`}
           />
-          <StatCard
-            label="Total Loss"
-            value={periodData.loss}
-            color="text-red-400"
-            icon="📉"
-          />
-          <StatCard
-            label="Net Result"
-            value={periodData.net}
-            color={periodData.net >= 0 ? 'text-indigo-400' : 'text-red-400'}
-            icon={periodData.net >= 0 ? '🎯' : '💔'}
-          />
-        </div>
-
-        {/* Time Period Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-            <p className="text-gray-400 text-sm">This Week</p>
-            <p className={`text-xl font-bold ${summary?.weekly?.net >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {summary?.weekly?.net >= 0 ? '+' : ''}₹{(summary?.weekly?.net || 0).toLocaleString('en-IN')}
-            </p>
-            <div className="flex gap-4 mt-1 text-xs">
-              <span className="text-green-400">+₹{(summary?.weekly?.profit || 0).toLocaleString('en-IN')}</span>
-              <span className="text-red-400">-₹{(summary?.weekly?.loss || 0).toLocaleString('en-IN')}</span>
-            </div>
-          </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-            <p className="text-gray-400 text-sm">This Month</p>
-            <p className={`text-xl font-bold ${summary?.monthly?.net >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {summary?.monthly?.net >= 0 ? '+' : ''}₹{(summary?.monthly?.net || 0).toLocaleString('en-IN')}
-            </p>
-            <div className="flex gap-4 mt-1 text-xs">
-              <span className="text-green-400">+₹{(summary?.monthly?.profit || 0).toLocaleString('en-IN')}</span>
-              <span className="text-red-400">-₹{(summary?.monthly?.loss || 0).toLocaleString('en-IN')}</span>
-            </div>
-          </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-            <p className="text-gray-400 text-sm">This Year</p>
-            <p className={`text-xl font-bold ${summary?.yearly?.net >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {summary?.yearly?.net >= 0 ? '+' : ''}₹{(summary?.yearly?.net || 0).toLocaleString('en-IN')}
-            </p>
-            <div className="flex gap-4 mt-1 text-xs">
-              <span className="text-green-400">+₹{(summary?.yearly?.profit || 0).toLocaleString('en-IN')}</span>
-              <span className="text-red-400">-₹{(summary?.yearly?.loss || 0).toLocaleString('en-IN')}</span>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <StatCard
+              label="Total Profit"
+              value={periodData.profit}
+              color="text-green-400"
+              icon="📈"
+              sub="Sum of all profit entries"
+            />
+            <StatCard
+              label="Total Loss"
+              value={periodData.loss}
+              color="text-red-400"
+              icon="📉"
+              sub="Sum of all loss entries"
+            />
+            <StatCard
+              label="Net Result"
+              value={periodData.net}
+              color={periodData.net >= 0 ? 'text-indigo-400' : 'text-red-500'}
+              icon={periodData.net >= 0 ? '🎯' : '💔'}
+              sub={periodData.net >= 0 ? 'You are in profit' : 'You are in loss'}
+            />
           </div>
         </div>
 
-        {/* Chart - Profit vs Loss */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-8">
-          <h2 className="text-white font-semibold mb-4">Profit vs Loss Over Time</h2>
+        {/* ── Period Report Dropdown ───────────────────────────────────── */}
+        {period !== 'year' && (
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold text-white">
+                  {period === 'week' ? 'Week-wise' : 'Month-wise'} Report
+                </h2>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Select a {period === 'week' ? 'week' : 'month'} to view detailed transactions
+                </p>
+              </div>
+
+              {periodOptions.length > 0 && (
+                <select
+                  value={selectedKey || ''}
+                  onChange={(e) => handleSelect(e.target.value)}
+                  className="bg-gray-800 border border-gray-700 text-white text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500 sm:min-w-[320px]"
+                >
+                  {periodOptions.map((opt) => (
+                    <option key={opt.key} value={opt.key}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* Selected bucket summary pills */}
+            {selectedBucket && (
+              <div className="px-6 pt-4 pb-2 grid grid-cols-3 gap-3">
+                <div className="rounded-xl bg-green-900/20 border border-green-900/40 px-4 py-3 text-center">
+                  <p className="text-xs text-gray-500 mb-1">Profit</p>
+                  <p className="text-sm font-bold text-green-400 tabular-nums">
+                    +₹{selectedBucket.profit.toLocaleString('en-IN')}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-red-900/20 border border-red-900/40 px-4 py-3 text-center">
+                  <p className="text-xs text-gray-500 mb-1">Loss</p>
+                  <p className="text-sm font-bold text-red-400 tabular-nums">
+                    -₹{selectedBucket.loss.toLocaleString('en-IN')}
+                  </p>
+                </div>
+                <div className={`rounded-xl px-4 py-3 text-center border ${
+                  selectedBucket.net >= 0
+                    ? 'bg-indigo-900/20 border-indigo-900/40'
+                    : 'bg-red-900/20 border-red-900/40'
+                }`}>
+                  <p className="text-xs text-gray-500 mb-1">Net</p>
+                  <p className={`text-sm font-bold tabular-nums ${
+                    selectedBucket.net >= 0 ? 'text-indigo-400' : 'text-red-400'
+                  }`}>
+                    {selectedBucket.net >= 0 ? '+' : '-'}₹{Math.abs(selectedBucket.net).toLocaleString('en-IN')}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Transactions table */}
+            {selectedBucket && selectedBucket.transactions.length > 0 ? (
+              <div className="px-6 pb-6 mt-3 overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left border-b border-gray-800">
+                      <th className="pb-2 font-semibold text-xs tracking-wider text-gray-500 uppercase">Date</th>
+                      <th className="pb-2 font-semibold text-xs tracking-wider text-gray-500 uppercase">Type</th>
+                      <th className="pb-2 font-semibold text-xs tracking-wider text-gray-500 uppercase">Category</th>
+                      <th className="pb-2 font-semibold text-xs tracking-wider text-gray-500 uppercase text-right">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-800/50">
+                    {[...selectedBucket.transactions]
+                      .sort((a, b) => new Date(b.date) - new Date(a.date))
+                      .map((t) => (
+                        <tr key={t.id} className="hover:bg-gray-800/30 transition-colors">
+                          <td className="py-3 text-gray-400 text-xs">
+                            {fmt(t.date, LONG)}
+                          </td>
+                          <td className="py-3">
+                            <Badge type={t.type} />
+                          </td>
+                          <td className="py-3 text-white text-xs">{t.category}</td>
+                          <td className="py-3 text-right">
+                            <AmountCell type={t.type} amount={t.amount} />
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                  <tfoot>
+                    <NetRow net={selectedBucket.net} />
+                  </tfoot>
+                </table>
+              </div>
+            ) : (
+              <div className="px-6 py-10 text-center text-gray-600 text-sm">
+                No transactions found for this period.
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Chart ───────────────────────────────────────────────────── */}
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+          <SectionHeading
+            title="Profit vs Loss Over Time"
+            subtitle="Last 12 recorded dates with P&L activity"
+          />
           {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={chartData}>
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                <XAxis dataKey="date" tick={{ fill: '#6b7280', fontSize: 12 }} />
-                <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fill: '#6b7280', fontSize: 11 }}
+                  axisLine={{ stroke: '#1f2937' }}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fill: '#6b7280', fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v) => `₹${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+                />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#111827',
                     border: '1px solid #1f2937',
-                    borderRadius: '8px',
-                    color: '#fff'
+                    borderRadius: '10px',
+                    color: '#fff',
+                    fontSize: '12px',
                   }}
-                  formatter={(value) => `₹${value.toLocaleString('en-IN')}`}
+                  formatter={(value) => [`₹${value.toLocaleString('en-IN')}`, undefined]}
+                />
+                <Legend
+                  wrapperStyle={{ fontSize: '12px', color: '#9ca3af', paddingTop: '12px' }}
                 />
                 <Line
                   type="monotone"
                   dataKey="profit"
                   stroke="#4ade80"
                   strokeWidth={2}
-                  dot={{ fill: '#4ade80' }}
+                  dot={{ fill: '#4ade80', r: 3 }}
+                  activeDot={{ r: 5 }}
                   name="Profit"
                 />
                 <Line
@@ -251,60 +474,52 @@ export default function Dashboard() {
                   dataKey="loss"
                   stroke="#f87171"
                   strokeWidth={2}
-                  dot={{ fill: '#f87171' }}
+                  dot={{ fill: '#f87171', r: 3 }}
+                  activeDot={{ r: 5 }}
                   name="Loss"
                 />
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-64 flex items-center justify-center">
-              <p className="text-gray-500">No profit or loss transactions yet.</p>
+            <div className="h-56 flex flex-col items-center justify-center gap-2">
+              <span className="text-3xl opacity-20">📊</span>
+              <p className="text-gray-600 text-sm">No data to display yet.</p>
             </div>
           )}
         </div>
 
-        {/* Recent Profit & Loss Transactions */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-          <h2 className="text-white font-semibold mb-4">Recent Profit & Loss</h2>
-          {transactions.filter(t => t.type === 'profit' || t.type === 'loss').length === 0 ? (
-            <p className="text-gray-500 text-center py-4">No profit or loss transactions yet.</p>
+        {/* ── Recent Transactions ──────────────────────────────────────── */}
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+          <SectionHeading
+            title="Recent Profit & Loss"
+            subtitle="Your 5 most recent P&L entries across all time"
+          />
+          {pnlOnly(transactions).length === 0 ? (
+            <div className="py-10 text-center">
+              <span className="text-3xl opacity-20">📋</span>
+              <p className="text-gray-600 text-sm mt-2">No transactions recorded yet.</p>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-gray-400 border-b border-gray-800">
-                  <tr>
-                    <th className="text-left py-2">Date</th>
-                    <th className="text-left py-2">Type</th>
-                    <th className="text-left py-2">Category</th>
-                    <th className="text-right py-2">Amount</th>
+                <thead>
+                  <tr className="text-left border-b border-gray-800">
+                    <th className="pb-2 font-semibold text-xs tracking-wider text-gray-500 uppercase">Date</th>
+                    <th className="pb-2 font-semibold text-xs tracking-wider text-gray-500 uppercase">Type</th>
+                    <th className="pb-2 font-semibold text-xs tracking-wider text-gray-500 uppercase">Category</th>
+                    <th className="pb-2 font-semibold text-xs tracking-wider text-gray-500 uppercase text-right">Amount</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {transactions
-                    .filter(t => t.type === 'profit' || t.type === 'loss')
+                <tbody className="divide-y divide-gray-800/50">
+                  {pnlOnly(transactions)
                     .slice(0, 5)
                     .map((t) => (
-                      <tr key={t.id} className="border-b border-gray-800">
-                        <td className="py-2 text-gray-300">
-                          {new Date(t.date).toLocaleDateString('en-IN', {
-                            day: 'numeric',
-                            month: 'short'
-                          })}
-                        </td>
-                        <td className="py-2">
-                          <span className={`text-xs px-2 py-1 rounded-full ${
-                            t.type === 'profit' 
-                              ? 'text-green-400 bg-green-900/30' 
-                              : 'text-red-400 bg-red-900/30'
-                          }`}>
-                            {t.type}
-                          </span>
-                        </td>
-                        <td className="py-2 text-white">{t.category}</td>
-                        <td className={`py-2 text-right font-semibold ${
-                          t.type === 'profit' ? 'text-green-400' : 'text-red-400'
-                        }`}>
-                          {t.type === 'profit' ? '+' : '-'}₹{t.amount.toLocaleString('en-IN')}
+                      <tr key={t.id} className="hover:bg-gray-800/30 transition-colors">
+                        <td className="py-3 text-gray-400 text-xs">{fmt(t.date, SHORT)}</td>
+                        <td className="py-3"><Badge type={t.type} /></td>
+                        <td className="py-3 text-white text-xs">{t.category}</td>
+                        <td className="py-3 text-right">
+                          <AmountCell type={t.type} amount={t.amount} />
                         </td>
                       </tr>
                     ))}
@@ -313,6 +528,12 @@ export default function Dashboard() {
             </div>
           )}
         </div>
+
+        {/* ── Footer ──────────────────────────────────────────────────── */}
+        <p className="text-center text-xs text-gray-700 pb-4">
+          LootLedger · Profit &amp; Loss Dashboard · {new Date().getFullYear()}
+        </p>
+
       </div>
     </div>
   )
